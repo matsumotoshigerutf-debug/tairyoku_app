@@ -1,0 +1,26 @@
+{
+  "name": "新体力テスト 記録アプリ",
+  "short_name": "体力テスト",
+  "description": "新体力テストの記録・グラフ分析アプリ",
+  "start_url": "./新体力テストapp.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1e40af",
+  "theme_color": "#1e40af",
+  "orientation": "any",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
