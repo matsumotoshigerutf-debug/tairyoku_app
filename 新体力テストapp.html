@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>新体力テスト 記録アプリ</title>
+<meta name="theme-color" content="#1e40af">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="体力テスト">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pri:#1e40af;--pri-l:#3b82f6;--pri-d:#1e3a8a;
+  --tea:#065f46;--tea-l:#10b981;
+  --red:#ef4444;--amb:#f59e0b;--pur:#8b5cf6;
+  --bg:#f1f5f9;--card:#fff;--text:#1e293b;--mut:#64748b;
+  --bdr:#e2e8f0;--rad:12px;
+  --sh:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --sh-lg:0 10px 15px -3px rgba(0,0,0,.1);
+}
+body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Meiryo',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* NAV */
+.nav{display:flex;align-items:center;padding:0 1rem;position:sticky;top:0;z-index:200;box-shadow:var(--sh-lg)}
+.nav.s-nav{background:var(--pri)}
+.nav.t-nav{background:var(--tea)}
+.nav-brand{font-size:1rem;font-weight:800;padding:.85rem 1.1rem .85rem .25rem;border-right:1px solid rgba(255,255,255,.25);margin-right:.5rem;white-space:nowrap;color:#fff}
+.nav-tabs{display:flex;overflow-x:auto;flex:1}
+.nav-tab{padding:.85rem 1rem;cursor:pointer;font-size:.875rem;color:rgba(255,255,255,.75);border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s;user-select:none}
+.nav-tab:hover{color:#fff;background:rgba(255,255,255,.08)}
+.nav-tab.active{color:#fff;border-bottom-color:#93c5fd;font-weight:700}
+.t-nav .nav-tab.active{border-bottom-color:#6ee7b7}
+.nav-exit{margin-left:auto;padding:.5rem .9rem;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:600;white-space:nowrap;transition:all .15s}
+.nav-exit:hover{background:rgba(255,255,255,.25)}
+
+/* LAYOUT */
+.main{max-width:1100px;margin:0 auto;padding:1.5rem 1rem 3rem}
+.page{display:none}.page.active{display:block}
+.sec-title{font-size:1.25rem;font-weight:800;margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:2px solid var(--bdr)}
+
+/* ONBOARDING */
+#screen-onboarding{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem;background:linear-gradient(135deg,#1e3a8a 0%,#1e40af 50%,#2563eb 100%)}
+.ob-card{background:#fff;border-radius:20px;box-shadow:0 25px 50px rgba(0,0,0,.25);padding:2.5rem 2rem;width:100%;max-width:480px}
+.ob-icon{font-size:3rem;text-align:center;margin-bottom:.5rem}
+.ob-title{font-size:1.5rem;font-weight:800;text-align:center;color:var(--pri-d);margin-bottom:.25rem}
+.ob-sub{font-size:.875rem;color:var(--mut);text-align:center;margin-bottom:1.75rem}
+
+/* CARDS */
+.card{background:var(--card);border-radius:var(--rad);box-shadow:var(--sh);padding:1.4rem;margin-bottom:1rem}
+.card-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem}
+.card-title{font-size:1rem;font-weight:700}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+@media(max-width:800px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+/* STAT */
+.stat{background:var(--card);border-radius:var(--rad);box-shadow:var(--sh);padding:1.1rem;text-align:center;border-top:4px solid var(--pri-l)}
+.stat:nth-child(2){border-top-color:var(--tea-l)}
+.stat:nth-child(3){border-top-color:var(--amb)}
+.stat:nth-child(4){border-top-color:var(--pur)}
+.stat-v{font-size:2rem;font-weight:800;color:var(--pri);line-height:1}
+.stat:nth-child(2) .stat-v{color:var(--tea)}
+.stat:nth-child(3) .stat-v{color:#b45309}
+.stat:nth-child(4) .stat-v{color:var(--pur)}
+.stat-l{font-size:.78rem;color:var(--mut);margin-top:.3rem;font-weight:500}
+
+/* FORMS */
+.fg{margin-bottom:.9rem}
+.fl{display:block;font-size:.8rem;font-weight:700;color:var(--mut);margin-bottom:.3rem;letter-spacing:.3px}
+.fc{width:100%;padding:.55rem .75rem;border:2px solid var(--bdr);border-radius:8px;font-size:.9rem;font-family:inherit;color:var(--text);background:#fff;transition:border-color .15s}
+.fc:focus{outline:none;border-color:var(--pri-l);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+textarea.fc{resize:vertical;min-height:65px}
+.frow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.9rem}
+.req{color:var(--red)}
+.note{font-size:.78rem;color:var(--mut);font-weight:400;margin-left:.2rem}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:.35rem;padding:.5rem 1rem;border:none;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
+.btn:active{transform:scale(.97)}
+.btn-p{background:var(--pri);color:#fff}.btn-p:hover{background:var(--pri-d)}
+.btn-g{background:var(--bg);color:var(--text);border:1px solid var(--bdr)}.btn-g:hover{background:var(--bdr)}
+.btn-t{background:var(--tea);color:#fff}.btn-t:hover{background:#047857}
+.btn-r{background:var(--red);color:#fff}.btn-r:hover{background:#dc2626}
+.btn-sm{padding:.3rem .65rem;font-size:.78rem}
+.btn-lg{padding:.7rem 1.5rem;font-size:.95rem;width:100%;justify-content:center}
+
+/* TABLE */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.875rem}
+th{background:#f8fafc;padding:.6rem .7rem;text-align:left;font-weight:700;color:var(--mut);border-bottom:2px solid var(--bdr);white-space:nowrap;font-size:.78rem}
+td{padding:.6rem .7rem;border-bottom:1px solid var(--bdr);vertical-align:middle}
+tbody tr:hover td{background:#f8fafc}
+tbody tr:last-child td{border-bottom:none}
+
+/* MODAL */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:1rem}
+.ov.open{display:flex}
+.modal{background:#fff;border-radius:var(--rad);box-shadow:var(--sh-lg);width:100%;max-width:540px;max-height:92vh;overflow-y:auto}
+.mhd{padding:1.1rem 1.4rem;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:1}
+.mtitle{font-size:1.05rem;font-weight:700}
+.mclose{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--mut);padding:.2rem .4rem;line-height:1;border-radius:4px}
+.mclose:hover{background:var(--bg)}
+.mbody{padding:1.4rem}
+.mfoot{padding:1rem 1.4rem;border-top:1px solid var(--bdr);display:flex;justify-content:flex-end;gap:.75rem}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:.18rem .55rem;border-radius:999px;font-size:.73rem;font-weight:700}
+.b-blue{background:#dbeafe;color:#1e40af}
+.b-green{background:#d1fae5;color:#065f46}
+.b-amb{background:#fef3c7;color:#92400e}
+.b-pur{background:#ede9fe;color:#5b21b6}
+
+/* INNER TABS */
+.itabs{display:flex;border-bottom:2px solid var(--bdr);margin-bottom:1rem;overflow-x:auto}
+.itab{padding:.55rem 1rem;cursor:pointer;font-size:.875rem;color:var(--mut);border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;font-weight:500;transition:all .15s}
+.itab:hover{color:var(--pri)}
+.itab.active{color:var(--pri);border-bottom-color:var(--pri);font-weight:700}
+
+/* ALERTS */
+.alert{padding:.7rem 1rem;border-radius:8px;font-size:.875rem;margin-bottom:1rem;line-height:1.5}
+.a-info{background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe}
+.a-ok{background:#d1fae5;color:#065f46;border:1px solid #a7f3d0}
+.a-warn{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.a-red{background:#fee2e2;color:#991b1b;border:1px solid #fecaca}
+
+/* CHART */
+.ch-wrap{position:relative;height:300px;margin-top:.75rem}
+.ch-lg{height:380px}
+
+/* EMPTY */
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--mut)}
+.empty-i{font-size:2.5rem;margin-bottom:.5rem}
+.empty-t{font-size:.9rem}
+
+/* COMMENT CARD */
+.comment-card{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #a7f3d0;border-radius:var(--rad);padding:1.25rem;margin-top:1rem}
+.comment-label{font-size:.78rem;font-weight:700;color:#065f46;margin-bottom:.5rem;letter-spacing:.5px}
+.comment-text{font-size:.9rem;color:#1e293b;line-height:1.8}
+
+/* PROFILE CARD */
+.profile-card{background:linear-gradient(135deg,var(--pri-d),var(--pri));border-radius:var(--rad);padding:1.5rem;color:#fff;margin-bottom:1rem}
+.profile-name{font-size:1.5rem;font-weight:800;margin-bottom:.4rem}
+.profile-info{font-size:.875rem;opacity:.85;display:flex;gap:1rem;flex-wrap:wrap}
+
+/* RADIO */
+.rg{display:flex;gap:1.25rem;flex-wrap:wrap}
+.rl{display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.9rem;font-weight:500}
+
+/* ENDURANCE ROW */
+.erow{display:flex;gap:.5rem}
+.erow .fc:first-child{flex:1}
+.erow select{width:155px;flex-shrink:0}
+
+/* MISC */
+.flex{display:flex}.items-c{align-items:center}.justify-b{justify-content:space-between}
+.gap-s{gap:.5rem}.gap-m{gap:.75rem}
+.fw7{font-weight:700}.ts{font-size:.82rem}.tm{color:var(--mut)}
+.mt-s{margin-top:.5rem}.mt-m{margin-top:1rem}.mb-m{margin-bottom:1rem}
+.w100{width:100%}
+input[type=number]{-moz-appearance:textfield}
+
+/* ── iOS zoom 防止: 全 input/select/textarea を 16px 以上に ── */
+input,select,textarea{font-size:max(16px,.9rem)!important}
+
+/* ── Safe Area (iPhone ノッチ・ホームバー対応) ── */
+body{padding-bottom:env(safe-area-inset-bottom)}
+.nav{padding-left:max(1rem,env(safe-area-inset-left));padding-right:max(1rem,env(safe-area-inset-right))}
+
+/* ── 底部ナビ (生徒モード・スマホのみ表示) ── */
+.bnav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:#fff;
+  border-top:1px solid var(--bdr);
+  box-shadow:0 -2px 12px rgba(0,0,0,.08);
+  z-index:190;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.bnav-inner{display:flex;height:56px}
+.bnav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:2px;
+  cursor:pointer;color:var(--mut);
+  font-size:.65rem;font-weight:600;
+  border:none;background:none;
+  transition:color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.bnav-item span.bi{font-size:1.3rem;line-height:1}
+.bnav-item.active{color:var(--pri)}
+.bnav-item.active span.bi{filter:drop-shadow(0 0 4px rgba(59,130,246,.4))}
+
+/* ── インストールバナー ── */
+#install-banner{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--pri);color:#fff;
+  padding:.75rem 1rem;
+  padding-bottom:calc(.75rem + env(safe-area-inset-bottom));
+  z-index:300;
+  align-items:center;gap:.75rem;
+  box-shadow:0 -4px 16px rgba(0,0,0,.2);
+}
+#install-banner.show{display:flex}
+.ib-text{flex:1;font-size:.875rem;font-weight:600}
+.ib-text small{display:block;font-size:.75rem;font-weight:400;opacity:.8}
+.ib-btn{padding:.45rem .9rem;border-radius:8px;font-size:.8rem;font-weight:700;cursor:pointer;border:none}
+.ib-install{background:#fff;color:var(--pri)}
+.ib-close{background:rgba(255,255,255,.2);color:#fff}
+
+/* ── オフラインバナー ── */
+#offline-banner{
+  display:none;
+  background:#92400e;color:#fff;
+  text-align:center;font-size:.8rem;font-weight:600;
+  padding:.35rem 1rem;
+}
+#offline-banner.show{display:block}
+
+@media(max-width:560px){
+  .ob-card{padding:2rem 1.25rem}
+  .nav-brand{font-size:.85rem}
+  .nav-tab{padding:.75rem .7rem;font-size:.78rem}
+  .main{padding:1rem .75rem calc(72px + env(safe-area-inset-bottom))}
+  /* スマホでは上部タブを非表示にして底部ナビを表示 */
+  #screen-student .nav-tabs{display:none}
+  .bnav{display:block}
+  /* カードの余白をモバイル向けに縮小 */
+  .card{padding:1rem}
+  .ch-wrap{height:240px}
+  .ch-lg{height:280px}
+}
+@media(min-width:561px){
+  .bnav{display:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════ ONBOARDING ═══════════ -->
+<div id="screen-onboarding">
+  <div class="ob-card">
+    <div class="ob-icon">🏃</div>
+    <div class="ob-title">新体力テスト 記録アプリ</div>
+    <div class="ob-sub">はじめに、あなたの情報を入力してください</div>
+    <div class="frow">
+      <div class="fg">
+        <label class="fl">名前 <span class="req">*</span></label>
+        <input type="text" class="fc" id="ob-name" placeholder="山田 太郎">
+      </div>
+      <div class="fg">
+        <label class="fl">性別</label>
+        <select class="fc" id="ob-gender">
+          <option value="男">男</option>
+          <option value="女">女</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg">
+        <label class="fl">学年 <span class="req">*</span></label>
+        <select class="fc" id="ob-grade">
+          <option value="1">1年生</option>
+          <option value="2">2年生</option>
+          <option value="3">3年生</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">クラス <span class="req">*</span></label>
+        <select class="fc" id="ob-klass">
+          <option value="1">1組</option>
+          <option value="2">2組</option>
+          <option value="3">3組</option>
+          <option value="4">4組</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg">
+        <label class="fl">出席番号 <span class="req">*</span></label>
+        <input type="number" class="fc" id="ob-number" placeholder="例: 12" min="1" max="99">
+      </div>
+      <div class="fg">
+        <label class="fl">入学年度 <span class="req">*</span></label>
+        <select class="fc" id="ob-entry">
+          <option value="2025">2025年度</option>
+          <option value="2026">2026年度</option>
+          <option value="2027">2027年度</option>
+          <option value="2028">2028年度</option>
+          <option value="2029">2029年度</option>
+          <option value="2030">2030年度</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-p" style="width:100%;padding:.75rem;font-size:1rem;margin-top:.5rem;border-radius:10px" onclick="submitOnboarding()">はじめる →</button>
+  </div>
+</div>
+
+<!-- ═══════════ STUDENT APP ═══════════ -->
+<div id="screen-student" style="display:none">
+  <nav class="nav s-nav">
+    <div class="nav-brand">🏃 体力テスト</div>
+    <div class="nav-tabs">
+      <div class="nav-tab active" data-sp="home">ホーム</div>
+      <div class="nav-tab" data-sp="record">記録入力</div>
+      <div class="nav-tab" data-sp="graph">グラフ</div>
+      <div class="nav-tab" data-sp="settings">設定</div>
+    </div>
+  </nav>
+  <main class="main">
+
+    <!-- HOME -->
+    <section class="page active" id="sp-home">
+      <div id="s-profile-card" class="profile-card">
+        <div class="profile-name" id="s-greeting">こんにちは！</div>
+        <div class="profile-info" id="s-profile-info"></div>
+      </div>
+      <div class="g3 mb-m">
+        <div class="stat"><div class="stat-v" id="sh-total">0</div><div class="stat-l">総記録数</div></div>
+        <div class="stat"><div class="stat-v" id="sh-annual">0</div><div class="stat-l">年次テスト</div></div>
+        <div class="stat"><div class="stat-v" id="sh-last">—</div><div class="stat-l">最終記録日</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd"><div class="card-title">最近の記録</div><button class="btn btn-p btn-sm" onclick="goS('record')">＋ 入力</button></div>
+          <div id="sh-recent"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:.9rem">クイックアクション</div>
+          <div style="display:flex;flex-direction:column;gap:.6rem">
+            <button class="btn btn-p btn-lg" onclick="goS('record')">📝 記録を入力する</button>
+            <button class="btn btn-g btn-lg" onclick="goS('graph')">📊 グラフで確認する</button>
+            <button class="btn btn-g btn-lg" onclick="goS('settings')">⚙️ 設定・提出</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RECORD -->
+    <section class="page" id="sp-record">
+      <div class="sec-title">記録入力</div>
+      <div class="card">
+        <div class="g2" style="margin-bottom:.9rem">
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">測定日 <span class="req">*</span></label>
+            <input type="date" class="fc" id="r-date">
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">測定種別</label>
+            <div class="rg" style="padding-top:.4rem">
+              <label class="rl"><input type="radio" name="rtype" value="annual" checked> 年次テスト</label>
+              <label class="rl"><input type="radio" name="rtype" value="monthly"> 月次測定</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:1rem">測定値を入力</div>
+        <div class="g2">
+          <div class="fg"><label class="fl">① 握力<span class="note">左右平均 (kg)</span></label><input type="number" class="fc" id="r-grip" placeholder="例: 30.5" step="0.1" min="0" max="100"></div>
+          <div class="fg"><label class="fl">② 上体起こし<span class="note">(回)</span></label><input type="number" class="fc" id="r-situp" placeholder="例: 25" step="1" min="0" max="60"></div>
+          <div class="fg"><label class="fl">③ 長座体前屈<span class="note">(cm)</span></label><input type="number" class="fc" id="r-bend" placeholder="例: 40.0" step="0.1" min="-20" max="100"></div>
+          <div class="fg"><label class="fl">④ 反復横とび<span class="note">(点)</span></label><input type="number" class="fc" id="r-side" placeholder="例: 45" step="1" min="0" max="80"></div>
+          <div class="fg">
+            <label class="fl">⑤ 持久走 / シャトルラン</label>
+            <div class="erow">
+              <input type="number" class="fc" id="r-endurance" placeholder="数値" step="1" min="0" max="300">
+              <select class="fc" id="r-etype"><option value="shuttle">シャトルラン(回)</option><option value="run">持久走(秒)</option></select>
+            </div>
+          </div>
+          <div class="fg"><label class="fl">⑥ 50m走<span class="note">(秒)</span></label><input type="number" class="fc" id="r-sprint" placeholder="例: 8.50" step="0.01" min="5" max="20"></div>
+          <div class="fg"><label class="fl">⑦ 立ち幅とび<span class="note">(cm)</span></label><input type="number" class="fc" id="r-jump" placeholder="例: 180" step="1" min="50" max="350"></div>
+          <div class="fg"><label class="fl">⑧ ボール投げ<span class="note">(m)</span></label><input type="number" class="fc" id="r-ball" placeholder="例: 25" step="0.5" min="0" max="80"></div>
+        </div>
+        <div class="fg"><label class="fl">メモ<span class="note">（任意）</span></label><textarea class="fc" id="r-memo" placeholder="天気・体調・備考など"></textarea></div>
+        <div id="r-msg" class="alert a-ok" style="display:none">✅ 記録を保存しました！</div>
+        <div style="display:flex;gap:.75rem;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn btn-g" onclick="clearRecordForm()">クリア</button>
+          <button class="btn btn-p" style="padding:.6rem 1.75rem" onclick="saveRecord()">💾 記録を保存</button>
+        </div>
+      </div>
+      <div class="card" id="r-hist" style="display:none">
+        <div class="card-hd">
+          <div class="card-title">自分の記録一覧</div>
+          <button class="btn btn-g btn-sm" onclick="document.getElementById('r-hist').style.display='none'">閉じる</button>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>測定日</th><th>種別</th><th>握力</th><th>上体起</th><th>体前屈</th><th>反復横</th><th>持久等</th><th>50m走</th><th>立幅</th><th>投げ</th><th></th></tr></thead>
+            <tbody id="r-hist-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- GRAPH -->
+    <section class="page" id="sp-graph">
+      <div class="sec-title">グラフ</div>
+      <div class="card">
+        <div class="fg" style="margin-bottom:0">
+          <label class="fl">測定項目</label>
+          <select class="fc" id="sg-item" onchange="renderStudentGraphs()">
+            <option value="grip">① 握力 (kg)</option>
+            <option value="situp">② 上体起こし (回)</option>
+            <option value="bend">③ 長座体前屈 (cm)</option>
+            <option value="side">④ 反復横とび (点)</option>
+            <option value="endurance">⑤ 持久走 / シャトルラン</option>
+            <option value="sprint">⑥ 50m走 (秒)</option>
+            <option value="jump">⑦ 立ち幅とび (cm)</option>
+            <option value="ball">⑧ ボール投げ (m)</option>
+          </select>
+        </div>
+      </div>
+      <div class="itabs">
+        <div class="itab active" data-sg="monthly" onclick="switchSGTab('monthly')">📈 月次推移</div>
+        <div class="itab" data-sg="annual" onclick="switchSGTab('annual')">📊 3年間比較</div>
+        <div class="itab" data-sg="radar" onclick="switchSGTab('radar')">🕸 レーダー</div>
+      </div>
+      <div class="card" id="sgt-monthly">
+        <div class="card-title">月次推移グラフ</div>
+        <div class="ts tm mt-s">年次テスト（●）と月次測定（▲）を年度別に表示します</div>
+        <div id="sg-badges" style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.6rem"></div>
+        <div class="ch-wrap"><canvas id="sc-monthly"></canvas></div>
+        <div id="sc-monthly-empty" class="empty" style="display:none"><div class="empty-i">📈</div><div class="empty-t">記録を入力するとグラフが表示されます</div></div>
+      </div>
+      <div class="card" id="sgt-annual" style="display:none">
+        <div class="card-title">3年間比較グラフ</div>
+        <div class="ts tm mt-s">年次テストの結果を年度別に比較します</div>
+        <div class="ch-wrap"><canvas id="sc-annual"></canvas></div>
+        <div id="sc-annual-empty" class="empty" style="display:none"><div class="empty-i">📊</div><div class="empty-t">年次テストのデータがありません</div></div>
+      </div>
+      <div class="card" id="sgt-radar" style="display:none">
+        <div class="card-title">レーダーチャート（全8種目）</div>
+        <div class="ts tm mt-s">全種目を相対スコア化して年度別に比較します</div>
+        <div class="ch-wrap ch-lg"><canvas id="sc-radar"></canvas></div>
+        <div id="sc-radar-empty" class="empty" style="display:none"><div class="empty-i">🕸</div><div class="empty-t">年次テストのデータがありません</div></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="page" id="sp-settings">
+      <div class="sec-title">設定</div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:1rem">プロフィール</div>
+        <div class="g2">
+          <div class="fg"><label class="fl">名前</label><input type="text" class="fc" id="set-name"></div>
+          <div class="fg"><label class="fl">性別</label><select class="fc" id="set-gender"><option value="男">男</option><option value="女">女</option></select></div>
+          <div class="fg"><label class="fl">学年</label><select class="fc" id="set-grade"><option value="1">1年生</option><option value="2">2年生</option><option value="3">3年生</option></select></div>
+          <div class="fg"><label class="fl">クラス</label><select class="fc" id="set-klass"><option value="1">1組</option><option value="2">2組</option><option value="3">3組</option><option value="4">4組</option></select></div>
+          <div class="fg"><label class="fl">出席番号</label><input type="number" class="fc" id="set-number" min="1" max="99"></div>
+          <div class="fg"><label class="fl">入学年度</label><select class="fc" id="set-entry"><option value="2025">2025年度</option><option value="2026">2026年度</option><option value="2027">2027年度</option><option value="2028">2028年度</option><option value="2029">2029年度</option><option value="2030">2030年度</option></select></div>
+        </div>
+        <button class="btn btn-p" onclick="saveProfile()">プロフィールを保存</button>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:.6rem">📤 データを先生に提出</div>
+        <p class="ts tm" style="margin-bottom:1rem;line-height:1.6">JSONファイルをダウンロードして先生に提出してください。先生が教員モードでインポートし、全体集計を行います。</p>
+        <button class="btn btn-t" onclick="exportMyData()">📄 データをダウンロード（先生に提出）</button>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:.6rem">🔒 教員モード</div>
+        <p class="ts tm" style="margin-bottom:1rem;line-height:1.6">先生向けの管理画面です。パスワードが必要です。</p>
+        <button class="btn btn-g" onclick="enterTeacherMode()">教員モードへ →</button>
+      </div>
+      <div class="card" style="border:2px solid #fee2e2">
+        <div class="card-title" style="margin-bottom:.6rem;color:var(--red)">⚠️ データのリセット</div>
+        <p class="ts tm" style="margin-bottom:1rem;line-height:1.6">すべての記録を削除します。元に戻せません。事前にデータをダウンロードしてください。</p>
+        <button class="btn btn-r" onclick="resetMyData()">データをリセットする</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ═══════════ TEACHER APP ═══════════ -->
+<div id="screen-teacher" style="display:none">
+  <nav class="nav t-nav">
+    <div class="nav-brand">🎓 教員モード</div>
+    <div class="nav-tabs">
+      <div class="nav-tab active" data-tp="dash">ダッシュボード</div>
+      <div class="nav-tab" data-tp="students">生徒一覧</div>
+      <div class="nav-tab" data-tp="graph">グラフ分析</div>
+      <div class="nav-tab" data-tp="export">データ出力</div>
+    </div>
+    <button class="nav-exit" onclick="exitTeacherMode()">← 生徒画面へ</button>
+  </nav>
+  <main class="main">
+
+    <!-- TEACHER DASHBOARD -->
+    <section class="page active" id="tp-dash">
+      <div class="sec-title">ダッシュボード</div>
+      <div class="g4 mb-m">
+        <div class="stat"><div class="stat-v" id="td-students">0</div><div class="stat-l">インポート生徒数</div></div>
+        <div class="stat"><div class="stat-v" id="td-records">0</div><div class="stat-l">総記録数</div></div>
+        <div class="stat"><div class="stat-v" id="td-annual">0</div><div class="stat-l">年次テスト数</div></div>
+        <div class="stat"><div class="stat-v" id="td-monthly">0</div><div class="stat-l">月次測定数</div></div>
+      </div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-hd">
+            <div class="card-title">生徒データのインポート</div>
+          </div>
+          <p class="ts tm" style="margin-bottom:1rem;line-height:1.6">生徒が提出したJSONファイルを選択してください。複数ファイルを一度にインポートできます。</p>
+          <input type="file" class="fc" id="t-import-file" accept=".json" multiple onchange="importStudentFiles(this)" style="margin-bottom:.75rem">
+          <div id="t-import-msg" class="alert a-ok" style="display:none"></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:1rem">クイックアクション</div>
+          <div style="display:flex;flex-direction:column;gap:.6rem">
+            <button class="btn btn-t btn-lg" onclick="goT('export')">📊 Excelデータを出力する</button>
+            <button class="btn btn-g btn-lg" onclick="goT('students')">👥 生徒一覧を確認する</button>
+            <button class="btn btn-g btn-lg" onclick="goT('graph')">📈 グラフで分析する</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:.75rem">学年別 登録状況</div>
+        <div id="td-dept-summary"></div>
+      </div>
+    </section>
+
+    <!-- TEACHER STUDENTS -->
+    <section class="page" id="tp-students">
+      <div class="sec-title">生徒一覧</div>
+      <div class="card">
+        <div class="card-hd">
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center">
+            <input type="text" class="fc" id="ts-search" placeholder="名前で検索…" style="width:200px" oninput="renderTeacherStudents()">
+            <select class="fc" id="ts-dept-filter" style="width:120px" onchange="renderTeacherStudents()">
+              <option value="">全学年</option>
+              <option value="1">1年生</option>
+              <option value="2">2年生</option>
+              <option value="3">3年生</option>
+            </select>
+          </div>
+          <button class="btn btn-r btn-sm" onclick="clearTeacherData()">データを全削除</button>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>学年</th><th>クラス</th><th>出席番号</th><th>名前</th><th>性別</th><th>入学年度</th><th>記録数</th><th>最終記録日</th><th>操作</th></tr></thead>
+            <tbody id="ts-tbody"></tbody>
+          </table>
+          <div id="ts-empty" class="empty" style="display:none"><div class="empty-i">👥</div><div class="empty-t">生徒データがまだインポートされていません</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEACHER GRAPH -->
+    <section class="page" id="tp-graph">
+      <div class="sec-title">グラフ分析</div>
+      <div class="card">
+        <div class="g2">
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">生徒を選択</label>
+            <select class="fc" id="tg-student" onchange="renderTeacherGraphs()"><option value="">-- 生徒を選択 --</option></select>
+          </div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">測定項目</label>
+            <select class="fc" id="tg-item" onchange="renderTeacherGraphs()">
+              <option value="grip">① 握力 (kg)</option>
+              <option value="situp">② 上体起こし (回)</option>
+              <option value="bend">③ 長座体前屈 (cm)</option>
+              <option value="side">④ 反復横とび (点)</option>
+              <option value="endurance">⑤ 持久走 / シャトルラン</option>
+              <option value="sprint">⑥ 50m走 (秒)</option>
+              <option value="jump">⑦ 立ち幅とび (cm)</option>
+              <option value="ball">⑧ ボール投げ (m)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="itabs">
+        <div class="itab active" data-tg="monthly" onclick="switchTGTab('monthly')">📈 月次推移</div>
+        <div class="itab" data-tg="annual" onclick="switchTGTab('annual')">📊 3年間比較</div>
+        <div class="itab" data-tg="radar" onclick="switchTGTab('radar')">🕸 レーダー</div>
+      </div>
+      <div id="tgt-monthly" class="card">
+        <div class="card-title">月次推移グラフ</div>
+        <div class="ch-wrap"><canvas id="tc-monthly"></canvas></div>
+        <div id="tc-monthly-empty" class="empty" style="display:none"><div class="empty-i">📈</div><div class="empty-t">生徒を選択してください</div></div>
+      </div>
+      <div id="tgt-annual" class="card" style="display:none">
+        <div class="card-title">3年間比較グラフ</div>
+        <div class="ch-wrap"><canvas id="tc-annual"></canvas></div>
+        <div id="tc-annual-empty" class="empty" style="display:none"><div class="empty-i">📊</div><div class="empty-t">年次テストデータがありません</div></div>
+      </div>
+      <div id="tgt-radar" class="card" style="display:none">
+        <div class="card-title">レーダーチャート（全8種目）</div>
+        <div class="ch-wrap ch-lg"><canvas id="tc-radar"></canvas></div>
+        <div id="tc-radar-empty" class="empty" style="display:none"><div class="empty-i">🕸</div><div class="empty-t">年次テストデータがありません</div></div>
+      </div>
+      <div id="tg-comment-wrap" style="display:none">
+        <div class="comment-card">
+          <div class="comment-label">🤖 自動評価コメント</div>
+          <div class="comment-text" id="tg-comment"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEACHER EXPORT -->
+    <section class="page" id="tp-export">
+      <div class="sec-title">データ出力</div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:.6rem">📊 全記録CSV（Excel用）</div>
+          <p class="ts tm" style="margin-bottom:1rem;line-height:1.6">全生徒・全記録を1行1件でCSV出力します。Excelで開くとそのまま集計・グラフ作成に使えます。</p>
+          <button class="btn btn-t" onclick="exportAllCSV()">📥 全記録CSVをダウンロード</button>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:.6rem">📋 サマリーCSV（評価コメント付き）</div>
+          <p class="ts tm" style="margin-bottom:1rem;line-height:1.6">生徒1人1行で、最新年次テスト結果と自動評価コメントを付けてCSV出力します。</p>
+          <button class="btn btn-t" onclick="exportSummaryCSV()">📥 サマリーCSVをダウンロード</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:.75rem">📄 CSV列の説明</div>
+        <div class="g2">
+          <div>
+            <p class="ts fw7" style="margin-bottom:.4rem">全記録CSV</p>
+            <p class="ts tm" style="line-height:1.8">学年 / クラス / 出席番号 / 名前 / 性別 / 入学年度 / 測定日 / 年度 / 月 / 種別 / 握力 / 上体起こし / 長座体前屈 / 反復横とび / 持久走等 / 持久種別 / 50m走 / 立ち幅とび / ボール投げ / メモ</p>
+          </div>
+          <div>
+            <p class="ts fw7" style="margin-bottom:.4rem">サマリーCSV（評価付き）</p>
+            <p class="ts tm" style="line-height:1.8">学年 / クラス / 出席番号 / 名前 / 入学年度 / ＜最新年次テスト8種目＞ / 前年比コメント / 月次傾向 / 総合評価コメント</p>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:.6rem">🔒 教員パスワードの変更</div>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
+          <div class="fg" style="margin-bottom:0;flex:1;min-width:200px">
+            <label class="fl">新しいパスワード</label>
+            <input type="password" class="fc" id="t-pwd-new" placeholder="新しいパスワード">
+          </div>
+          <button class="btn btn-g" onclick="changeTeacherPwd()">変更する</button>
+        </div>
+        <p class="ts tm mt-s">初期パスワード: <strong>teacher123</strong></p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- オフラインバナー -->
+<div id="offline-banner">⚠️ オフライン中 — 入力・保存は引き続き使えます</div>
+
+<!-- インストールバナー -->
+<div id="install-banner">
+  <div class="ib-text">
+    ホーム画面に追加できます
+    <small>アプリとして起動・オフラインでも使えます</small>
+  </div>
+  <button class="ib-btn ib-install" id="ib-install-btn">追加する</button>
+  <button class="ib-btn ib-close" id="ib-close-btn">×</button>
+</div>
+
+<!-- 底部ナビ（生徒モード・スマホ用） -->
+<nav class="bnav" id="student-bnav">
+  <div class="bnav-inner">
+    <button class="bnav-item active" data-sp="home">
+      <span class="bi">🏠</span><span>ホーム</span>
+    </button>
+    <button class="bnav-item" data-sp="record">
+      <span class="bi">📝</span><span>記録</span>
+    </button>
+    <button class="bnav-item" data-sp="graph">
+      <span class="bi">📊</span><span>グラフ</span>
+    </button>
+    <button class="bnav-item" data-sp="settings">
+      <span class="bi">⚙️</span><span>設定</span>
+    </button>
+  </div>
+</nav>
+
+<!-- TEACHER PASSWORD MODAL -->
+<div class="ov" id="pwd-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="mhd"><div class="mtitle">🔒 教員モード</div><button class="mclose" onclick="closePwdModal()">×</button></div>
+    <div class="mbody">
+      <div class="fg">
+        <label class="fl">パスワードを入力</label>
+        <input type="password" class="fc" id="pwd-input" placeholder="パスワード">
+      </div>
+      <div id="pwd-err" class="alert a-red" style="display:none">パスワードが違います</div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-g" onclick="closePwdModal()">キャンセル</button>
+      <button class="btn btn-t" onclick="checkPassword()">入室する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════
+// Constants
+// ═══════════════════════════════════════
+const SK = 'tairyoku_student_v2';
+const TK = 'tairyoku_teacher_v2';
+const PK = 'tairyoku_pwd';
+const DEFAULT_PWD = 'teacher123';
+
+const ITEMS = {
+  grip:      { label:'握力',          unit:'kg', lb:false, dec:1 },
+  situp:     { label:'上体起こし',    unit:'回', lb:false, dec:0 },
+  bend:      { label:'長座体前屈',    unit:'cm', lb:false, dec:1 },
+  side:      { label:'反復横とび',    unit:'点', lb:false, dec:0 },
+  endurance: { label:'シャトルラン等', unit:'',   lb:false, dec:0 },
+  sprint:    { label:'50m走',         unit:'秒', lb:true,  dec:2 },
+  jump:      { label:'立ち幅とび',    unit:'cm', lb:false, dec:0 },
+  ball:      { label:'ボール投げ',    unit:'m',  lb:false, dec:1 },
+};
+const IKEYS = Object.keys(ITEMS);
+const PAL = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444'];
+const GRADEC = { '1':'badge b-blue', '2':'badge b-green', '3':'badge b-amb' };
+
+// ═══════════════════════════════════════
+// Storage
+// ═══════════════════════════════════════
+function sDB() {
+  try { return JSON.parse(localStorage.getItem(SK)) || { profile:null, records:[] }; }
+  catch { return { profile:null, records:[] }; }
+}
+function saveSDB(d) { localStorage.setItem(SK, JSON.stringify(d)); }
+
+function tDB() {
+  try { return JSON.parse(localStorage.getItem(TK)) || { students:[] }; }
+  catch { return { students:[] }; }
+}
+function saveTDB(d) { localStorage.setItem(TK, JSON.stringify(d)); }
+
+function getPwd() { return localStorage.getItem(PK) || DEFAULT_PWD; }
+function setPwd(p) { localStorage.setItem(PK, p); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function n(v) { const x = parseFloat(v); return isNaN(x) ? null : x; }
+function fmt(v, dec=1) { return (v === null || v === undefined) ? '—' : typeof dec === 'number' ? v : v; }
+
+// ═══════════════════════════════════════
+// Init & Screen
+// ═══════════════════════════════════════
+let sGTab = 'monthly', tGTab = 'monthly';
+let charts = {};
+
+function showScreen(name) {
+  ['onboarding','student','teacher'].forEach(s => {
+    document.getElementById('screen-'+s).style.display = s===name ? 'block' : 'none';
+  });
+}
+
+function init() {
+  const d = sDB();
+  if (!d.profile) { showScreen('onboarding'); return; }
+  showScreen('student');
+  renderStudentHome();
+  loadSettingsForm();
+  document.getElementById('r-date').value = new Date().toISOString().slice(0,10);
+}
+
+// ═══════════════════════════════════════
+// Onboarding
+// ═══════════════════════════════════════
+function submitOnboarding() {
+  const name = document.getElementById('ob-name').value.trim();
+  const grade = document.getElementById('ob-grade').value;
+  const klass = document.getElementById('ob-klass').value;
+  const num   = parseInt(document.getElementById('ob-number').value);
+  const year  = parseInt(document.getElementById('ob-entry').value);
+  const gender = document.getElementById('ob-gender').value;
+  if (!name) { alert('名前を入力してください'); return; }
+  if (!num || num < 1) { alert('出席番号を入力してください'); return; }
+  const d = sDB();
+  d.profile = { id: uid(), name, grade, klass, number: num, gender, entryYear: year };
+  saveSDB(d);
+  showScreen('student');
+  renderStudentHome();
+  loadSettingsForm();
+  document.getElementById('r-date').value = new Date().toISOString().slice(0,10);
+}
+
+// ═══════════════════════════════════════
+// Student Navigation
+// ═══════════════════════════════════════
+function goS(page) {
+  document.querySelectorAll('#screen-student .page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('[data-sp]').forEach(t => t.classList.remove('active'));
+  document.getElementById('sp-'+page).classList.add('active');
+  document.querySelector(`[data-sp="${page}"]`).classList.add('active');
+  if (page === 'home')     renderStudentHome();
+  if (page === 'graph')    renderStudentGraphs();
+  if (page === 'settings') loadSettingsForm();
+}
+document.querySelectorAll('[data-sp]').forEach(t => t.addEventListener('click', () => goS(t.dataset.sp)));
+
+// ═══════════════════════════════════════
+// Student Home
+// ═══════════════════════════════════════
+function renderStudentHome() {
+  const d = sDB();
+  const p = d.profile;
+  if (!p) return;
+  document.getElementById('s-greeting').textContent = `こんにちは、${p.name}さん！`;
+  document.getElementById('s-profile-info').innerHTML =
+    `<span>${p.grade}年生 ${p.klass}組</span><span>出席番号: ${p.number}</span><span>性別: ${p.gender}</span><span>入学: ${p.entryYear}年度</span>`;
+  const recs = d.records;
+  document.getElementById('sh-total').textContent = recs.length;
+  document.getElementById('sh-annual').textContent = recs.filter(r => r.type==='annual').length;
+  const last = recs.sort((a,b) => b.date.localeCompare(a.date))[0];
+  document.getElementById('sh-last').textContent = last ? last.date : '—';
+  const el = document.getElementById('sh-recent');
+  const recent = [...recs].sort((a,b) => b.date.localeCompare(a.date)).slice(0,5);
+  if (!recent.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-i">📝</div><div class="empty-t">まだ記録がありません。<br>「記録入力」から始めましょう！</div></div>`;
+    return;
+  }
+  el.innerHTML = `<table style="width:100%"><thead><tr><th>測定日</th><th>種別</th><th>握力</th><th>50m走</th></tr></thead><tbody>
+    ${recent.map(r=>`<tr><td>${r.date}</td><td><span class="badge ${r.type==='annual'?'b-blue':'b-green'}">${r.type==='annual'?'年次':'月次'}</span></td><td>${r.grip??'—'} ${r.grip?'kg':''}</td><td>${r.sprint??'—'} ${r.sprint?'秒':''}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+
+// ═══════════════════════════════════════
+// Student Record Entry
+// ═══════════════════════════════════════
+function saveRecord() {
+  const date = document.getElementById('r-date').value;
+  const type = document.querySelector('input[name="rtype"]:checked').value;
+  if (!date) { alert('測定日を入力してください'); return; }
+  const dt = new Date(date);
+  const month = dt.getMonth()+1;
+  const year  = dt.getFullYear();
+  const academicYear = month >= 4 ? year : year-1;
+  const rec = {
+    id: uid(), date, year, month, academicYear, type,
+    grip:     n(document.getElementById('r-grip').value),
+    situp:    n(document.getElementById('r-situp').value),
+    bend:     n(document.getElementById('r-bend').value),
+    side:     n(document.getElementById('r-side').value),
+    endurance:n(document.getElementById('r-endurance').value),
+    etype:    document.getElementById('r-etype').value,
+    sprint:   n(document.getElementById('r-sprint').value),
+    jump:     n(document.getElementById('r-jump').value),
+    ball:     n(document.getElementById('r-ball').value),
+    memo:     document.getElementById('r-memo').value.trim()
+  };
+  const d = sDB();
+  d.records.push(rec);
+  saveSDB(d);
+  const msg = document.getElementById('r-msg');
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display='none', 3000);
+  showRecordHistory();
+}
+
+function clearRecordForm() {
+  ['r-grip','r-situp','r-bend','r-side','r-endurance','r-sprint','r-jump','r-ball','r-memo']
+    .forEach(id => document.getElementById(id).value='');
+}
+
+function showRecordHistory() {
+  const d = sDB();
+  const recs = [...d.records].sort((a,b)=>b.date.localeCompare(a.date));
+  const el = document.getElementById('r-hist');
+  el.style.display = 'block';
+  document.getElementById('r-hist-body').innerHTML = recs.map(r=>`<tr>
+    <td>${r.date}</td>
+    <td><span class="badge ${r.type==='annual'?'b-blue':'b-green'}">${r.type==='annual'?'年次':'月次'}</span></td>
+    <td>${r.grip??'—'}</td><td>${r.situp??'—'}</td><td>${r.bend??'—'}</td><td>${r.side??'—'}</td>
+    <td>${r.endurance??'—'}<span class="ts tm"> ${r.etype==='shuttle'?'SR':'持久'}</span></td>
+    <td>${r.sprint??'—'}</td><td>${r.jump??'—'}</td><td>${r.ball??'—'}</td>
+    <td><button class="btn btn-r btn-sm" onclick="deleteMyRecord('${r.id}')">削除</button></td>
+  </tr>`).join('');
+}
+
+function deleteMyRecord(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  const d = sDB();
+  d.records = d.records.filter(r=>r.id!==id);
+  saveSDB(d);
+  showRecordHistory();
+}
+
+// ═══════════════════════════════════════
+// Student Graphs
+// ═══════════════════════════════════════
+function switchSGTab(tab) {
+  sGTab = tab;
+  document.querySelectorAll('[data-sg]').forEach(t => t.classList.toggle('active', t.dataset.sg===tab));
+  document.getElementById('sgt-monthly').style.display = tab==='monthly'?'block':'none';
+  document.getElementById('sgt-annual').style.display  = tab==='annual' ?'block':'none';
+  document.getElementById('sgt-radar').style.display   = tab==='radar'  ?'block':'none';
+  renderStudentGraphs();
+}
+
+function renderStudentGraphs() {
+  const d = sDB();
+  const item = document.getElementById('sg-item').value;
+  if (sGTab==='monthly') renderMonthly(d.records, item, 'sc-monthly', 'sc-monthly-empty', 'sg-badges');
+  if (sGTab==='annual')  renderAnnual(d.records, item, 'sc-annual', 'sc-annual-empty', d.profile?.entryYear, 'sAnnual');
+  if (sGTab==='radar')   renderRadar(d.records, d.records, 'sc-radar', 'sc-radar-empty', 'sRadar');
+}
+
+// ═══════════════════════════════════════
+// Student Settings
+// ═══════════════════════════════════════
+function loadSettingsForm() {
+  const p = sDB().profile;
+  if (!p) return;
+  document.getElementById('set-name').value   = p.name;
+  document.getElementById('set-gender').value = p.gender;
+  document.getElementById('set-grade').value  = p.grade;
+  document.getElementById('set-klass').value  = p.klass;
+  document.getElementById('set-number').value = p.number;
+  document.getElementById('set-entry').value  = p.entryYear;
+}
+
+function saveProfile() {
+  const name = document.getElementById('set-name').value.trim();
+  if (!name) { alert('名前を入力してください'); return; }
+  const d = sDB();
+  d.profile = {
+    ...d.profile,
+    name,
+    gender:    document.getElementById('set-gender').value,
+    grade:     document.getElementById('set-grade').value,
+    klass:     document.getElementById('set-klass').value,
+    number:    parseInt(document.getElementById('set-number').value),
+    entryYear: parseInt(document.getElementById('set-entry').value),
+  };
+  saveSDB(d);
+  alert('✅ プロフィールを保存しました');
+  renderStudentHome();
+}
+
+function exportMyData() {
+  const d = sDB();
+  const p = d.profile;
+  if (!p) { alert('プロフィールが設定されていません'); return; }
+  const blob = new Blob([JSON.stringify(d, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${p.grade}年${p.klass}組_${String(p.number).padStart(2,'0')}_${p.name}_体力テスト.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function resetMyData() {
+  if (!confirm('すべての記録とプロフィールを削除します。\nまずデータをダウンロードしましたか？')) return;
+  if (!confirm('本当に削除しますか？（最終確認）')) return;
+  localStorage.removeItem(SK);
+  showScreen('onboarding');
+}
+
+// ═══════════════════════════════════════
+// Teacher Mode Auth
+// ═══════════════════════════════════════
+function enterTeacherMode() {
+  document.getElementById('pwd-input').value = '';
+  document.getElementById('pwd-err').style.display = 'none';
+  document.getElementById('pwd-modal').classList.add('open');
+  setTimeout(() => document.getElementById('pwd-input').focus(), 100);
+}
+
+function closePwdModal() {
+  document.getElementById('pwd-modal').classList.remove('open');
+}
+
+function checkPassword() {
+  const v = document.getElementById('pwd-input').value;
+  if (v === getPwd()) {
+    closePwdModal();
+    showScreen('teacher');
+    renderTeacherDash();
+  } else {
+    document.getElementById('pwd-err').style.display = 'block';
+  }
+}
+document.getElementById('pwd-input').addEventListener('keydown', e => { if (e.key==='Enter') checkPassword(); });
+document.getElementById('pwd-modal').addEventListener('click', e => { if (e.target===e.currentTarget) closePwdModal(); });
+
+function exitTeacherMode() {
+  showScreen('student');
+  renderStudentHome();
+}
+
+function changeTeacherPwd() {
+  const v = document.getElementById('t-pwd-new').value.trim();
+  if (!v || v.length < 4) { alert('4文字以上のパスワードを入力してください'); return; }
+  setPwd(v);
+  document.getElementById('t-pwd-new').value = '';
+  alert('✅ パスワードを変更しました');
+}
+
+// ═══════════════════════════════════════
+// Teacher Navigation
+// ═══════════════════════════════════════
+function goT(page) {
+  document.querySelectorAll('#screen-teacher .page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('[data-tp]').forEach(t => t.classList.remove('active'));
+  document.getElementById('tp-'+page).classList.add('active');
+  document.querySelector(`[data-tp="${page}"]`).classList.add('active');
+  if (page==='dash')     renderTeacherDash();
+  if (page==='students') renderTeacherStudents();
+  if (page==='graph')    renderTeacherSelectList();
+}
+document.querySelectorAll('[data-tp]').forEach(t => t.addEventListener('click', () => goT(t.dataset.tp)));
+
+// ═══════════════════════════════════════
+// Teacher Import
+// ═══════════════════════════════════════
+function importStudentFiles(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  let done = 0, imported = 0, updated = 0, errors = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!data.profile || !Array.isArray(data.records)) throw new Error('形式エラー');
+        const td = tDB();
+        const key = `${data.profile.grade}_${data.profile.klass}_${data.profile.number}`;
+        const idx = td.students.findIndex(s => `${s.profile.grade}_${s.profile.klass}_${s.profile.number}` === key);
+        if (idx >= 0) {
+          td.students[idx].profile = data.profile;
+          const existKeys = new Set(td.students[idx].records.map(r => `${r.date}_${r.type}`));
+          const newRecs = data.records.filter(r => !existKeys.has(`${r.date}_${r.type}`));
+          td.students[idx].records.push(...newRecs);
+          updated++;
+        } else {
+          td.students.push({ profile: data.profile, records: data.records });
+          imported++;
+        }
+        saveTDB(td);
+      } catch { errors++; }
+      done++;
+      if (done === files.length) {
+        const msg = document.getElementById('t-import-msg');
+        msg.style.display = 'block';
+        msg.textContent = `✅ 完了: 新規${imported}名, 更新${updated}名${errors?`  ⚠️ エラー${errors}件`:''}`;
+        setTimeout(() => msg.style.display='none', 4000);
+        renderTeacherDash();
+        input.value = '';
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
+// ═══════════════════════════════════════
+// Teacher Dashboard
+// ═══════════════════════════════════════
+function renderTeacherDash() {
+  const td = tDB();
+  const allRecs = td.students.flatMap(s => s.records);
+  document.getElementById('td-students').textContent = td.students.length;
+  document.getElementById('td-records').textContent  = allRecs.length;
+  document.getElementById('td-annual').textContent   = allRecs.filter(r=>r.type==='annual').length;
+  document.getElementById('td-monthly').textContent  = allRecs.filter(r=>r.type==='monthly').length;
+
+  // Dept summary
+  const grades = ['1','2','3'];
+  const el = document.getElementById('td-dept-summary');
+  if (!td.students.length) {
+    el.innerHTML = '<div class="ts tm">データがありません。生徒のJSONファイルをインポートしてください。</div>';
+    return;
+  }
+  const rows = grades.map(g => {
+    const list = td.students.filter(s => s.profile.grade===g);
+    return `<tr><td><span class="badge ${GRADEC[g]}">${g}年生</span></td><td>${list.length}名</td><td>${list.reduce((a,s)=>a+s.records.length,0)}件</td></tr>`;
+  }).join('');
+  el.innerHTML = `<table style="width:auto"><thead><tr><th>学年</th><th>生徒数</th><th>総記録</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ═══════════════════════════════════════
+// Teacher Students List
+// ═══════════════════════════════════════
+function renderTeacherStudents() {
+  const td = tDB();
+  const q = (document.getElementById('ts-search')?.value||'').toLowerCase();
+  const gradef = document.getElementById('ts-dept-filter')?.value||'';
+  let list = td.students;
+  if (q) list = list.filter(s => s.profile.name.toLowerCase().includes(q));
+  if (gradef) list = list.filter(s => s.profile.grade===gradef);
+  list = list.sort((a,b) => {
+    if (a.profile.grade !== b.profile.grade) return a.profile.grade - b.profile.grade;
+    if (a.profile.klass !== b.profile.klass) return a.profile.klass - b.profile.klass;
+    return a.profile.number - b.profile.number;
+  });
+  const tbody = document.getElementById('ts-tbody');
+  const empty = document.getElementById('ts-empty');
+  if (!list.length) { tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(s => {
+    const p = s.profile;
+    const recs = s.records;
+    const last = [...recs].sort((a,b)=>b.date.localeCompare(a.date))[0];
+    return `<tr>
+      <td><span class="badge ${GRADEC[p.grade]}">${p.grade}年生</span></td>
+      <td>${p.klass}組</td>
+      <td>${p.number}</td><td class="fw7">${p.name}</td><td>${p.gender}</td>
+      <td>${p.entryYear}年度</td><td>${recs.length}件</td>
+      <td>${last?last.date:'—'}</td>
+      <td><button class="btn btn-p btn-sm" onclick="viewStudentGraph('${p.grade}','${p.klass}','${p.number}')">グラフ</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function viewStudentGraph(grade, klass, number) {
+  goT('graph');
+  const sel = document.getElementById('tg-student');
+  sel.value = `${grade}_${klass}_${number}`;
+  renderTeacherGraphs();
+}
+
+function clearTeacherData() {
+  if (!confirm('インポートした全生徒データを削除しますか？')) return;
+  saveTDB({ students:[] });
+  renderTeacherDash();
+  renderTeacherStudents();
+}
+
+// ═══════════════════════════════════════
+// Teacher Graph
+// ═══════════════════════════════════════
+function renderTeacherSelectList() {
+  const td = tDB();
+  const sel = document.getElementById('tg-student');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">-- 生徒を選択 --</option>' +
+    [...td.students]
+      .sort((a,b) => a.profile.grade - b.profile.grade || a.profile.klass - b.profile.klass || a.profile.number - b.profile.number)
+      .map(s => `<option value="${s.profile.grade}_${s.profile.klass}_${s.profile.number}">${s.profile.grade}年${s.profile.klass}組 ${s.profile.number}番 ${s.profile.name}</option>`)
+      .join('');
+  if (prev) sel.value = prev;
+}
+
+function switchTGTab(tab) {
+  tGTab = tab;
+  document.querySelectorAll('[data-tg]').forEach(t => t.classList.toggle('active', t.dataset.tg===tab));
+  document.getElementById('tgt-monthly').style.display = tab==='monthly'?'block':'none';
+  document.getElementById('tgt-annual').style.display  = tab==='annual' ?'block':'none';
+  document.getElementById('tgt-radar').style.display   = tab==='radar'  ?'block':'none';
+  renderTeacherGraphs();
+}
+
+function renderTeacherGraphs() {
+  const key = document.getElementById('tg-student').value;
+  const item = document.getElementById('tg-item').value;
+  const cw = document.getElementById('tg-comment-wrap');
+  if (!key) { cw.style.display='none'; return; }
+  const td = tDB();
+  const student = td.students.find(s => `${s.profile.grade}_${s.profile.klass}_${s.profile.number}` === key);
+  if (!student) return;
+  const allRecs = td.students.flatMap(s => s.records);
+  if (tGTab==='monthly') renderMonthly(student.records, item, 'tc-monthly', 'tc-monthly-empty', null);
+  if (tGTab==='annual')  renderAnnual(student.records, item, 'tc-annual', 'tc-annual-empty', student.profile.entryYear, 'tAnnual');
+  if (tGTab==='radar')   renderRadar(student.records, allRecs, 'tc-radar', 'tc-radar-empty', 'tRadar');
+  // Comment
+  const comment = generateComment(student.records, student.profile);
+  document.getElementById('tg-comment').textContent = comment;
+  cw.style.display = 'block';
+}
+
+// ═══════════════════════════════════════
+// Charts (shared)
+// ═══════════════════════════════════════
+function renderMonthly(records, item, canvasId, emptyId, badgesId) {
+  const info = ITEMS[item];
+  const recs = records.filter(r => r[item]!==null && r[item]!==undefined).sort((a,b)=>a.date.localeCompare(b.date));
+  const canvas = document.getElementById(canvasId);
+  const emptyEl = document.getElementById(emptyId);
+  if (!recs.length) { canvas.style.display='none'; emptyEl.style.display='block'; return; }
+  canvas.style.display='block'; emptyEl.style.display='none';
+  const years = [...new Set(recs.map(r=>r.academicYear))].sort();
+  if (badgesId) {
+    document.getElementById(badgesId).innerHTML = years.map((y,i) =>
+      `<span class="badge" style="background:${PAL[i%PAL.length]}22;color:${PAL[i%PAL.length]};padding:.25rem .75rem">${y}年度</span>`
+    ).join('');
+  }
+  const datasets = years.map((ay,i) => {
+    const yr = recs.filter(r=>r.academicYear===ay);
+    return {
+      label: `${ay}年度`,
+      data: yr.map(r=>({x:r.date, y:r[item]})),
+      borderColor: PAL[i%PAL.length],
+      backgroundColor: PAL[i%PAL.length]+'25',
+      tension: 0.35,
+      pointRadius: yr.map(()=>6),
+      pointStyle: yr.map(r=>r.type==='annual'?'circle':'triangle'),
+      pointBorderWidth: 2,
+      pointBorderColor: PAL[i%PAL.length],
+      pointBackgroundColor: yr.map(r=>r.type==='annual'?PAL[i%PAL.length]:'white'),
+      fill: false,
+    };
+  });
+  if (charts[canvasId]) charts[canvasId].destroy();
+  charts[canvasId] = new Chart(canvas, {
+    type:'line', data:{datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top'},
+        tooltip:{callbacks:{
+          title: items=>items[0].raw.x,
+          label: ctx=>{
+            const r = recs.find(r=>r.date===ctx.raw.x);
+            return `${ctx.dataset.label}: ${ctx.parsed.y}${info.unit}  ${r?.type==='annual'?'● 年次':'▲ 月次'}`;
+          }
+        }}
+      },
+      scales:{
+        x:{type:'category',title:{display:true,text:'測定日'}},
+        y:{title:{display:true,text:`${info.label}${info.unit?` (${info.unit})`:''}`},reverse:info.lb}
+      }
+    }
+  });
+}
+
+function renderAnnual(records, item, canvasId, emptyId, entryYear, chartKey) {
+  const info = ITEMS[item];
+  const annual = records.filter(r=>r.type==='annual'&&r[item]!==null&&r[item]!==undefined).sort((a,b)=>a.date.localeCompare(b.date));
+  const canvas = document.getElementById(canvasId);
+  const emptyEl = document.getElementById(emptyId);
+  if (!annual.length) { canvas.style.display='none'; emptyEl.style.display='block'; return; }
+  canvas.style.display='block'; emptyEl.style.display='none';
+  const byYear = {};
+  annual.forEach(r=>{ if(!byYear[r.academicYear]) byYear[r.academicYear]=r; });
+  const years = Object.keys(byYear).sort();
+  const labels = years.map(y=>{
+    const n = entryYear ? parseInt(y)-entryYear+1 : null;
+    return n&&n>=1&&n<=6 ? `${y}年度\n(${n}年目)` : `${y}年度`;
+  });
+  const ck = chartKey||canvasId;
+  if (charts[ck]) charts[ck].destroy();
+  charts[ck] = new Chart(canvas, {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:info.label,
+        data:years.map(y=>byYear[y][item]),
+        backgroundColor:years.map((_,i)=>PAL[i%PAL.length]+'BB'),
+        borderColor:years.map((_,i)=>PAL[i%PAL.length]),
+        borderWidth:2,borderRadius:6,
+      }]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y}${info.unit}`}}},
+      scales:{y:{title:{display:true,text:`${info.label}${info.unit?` (${info.unit})`:''}`},reverse:info.lb}}
+    }
+  });
+}
+
+function renderRadar(records, allRecords, canvasId, emptyId, chartKey) {
+  const annual = records.filter(r=>r.type==='annual').sort((a,b)=>a.date.localeCompare(b.date));
+  const canvas = document.getElementById(canvasId);
+  const emptyEl = document.getElementById(emptyId);
+  if (!annual.length) { canvas.style.display='none'; emptyEl.style.display='block'; return; }
+  canvas.style.display='block'; emptyEl.style.display='none';
+  const byYear = {};
+  annual.forEach(r=>{ if(!byYear[r.academicYear]) byYear[r.academicYear]=r; });
+  const years = Object.keys(byYear).sort();
+  const allAnnual = allRecords.filter(r=>r.type==='annual');
+  function score(key, val) {
+    if (val===null||val===undefined) return 50;
+    const vals = allAnnual.map(r=>r[key]).filter(v=>v!==null&&v!==undefined);
+    if (vals.length < 2) return 50;
+    const mn=Math.min(...vals), mx=Math.max(...vals);
+    if (mx===mn) return 50;
+    const pct=(val-mn)/(mx-mn)*100;
+    return ITEMS[key].lb ? 100-pct : pct;
+  }
+  const datasets = years.map((y,i)=>({
+    label:`${y}年度`,
+    data:IKEYS.map(k=>parseFloat(score(k,byYear[y][k]).toFixed(1))),
+    borderColor:PAL[i%PAL.length],
+    backgroundColor:PAL[i%PAL.length]+'30',
+    pointBackgroundColor:PAL[i%PAL.length],
+    borderWidth:2,
+  }));
+  const ck = chartKey||canvasId;
+  if (charts[ck]) charts[ck].destroy();
+  charts[ck] = new Chart(canvas, {
+    type:'radar',
+    data:{labels:IKEYS.map(k=>ITEMS[k].label),datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}},
+      scales:{r:{beginAtZero:true,max:100,ticks:{display:false},pointLabels:{font:{size:12,weight:'600'}}}}
+    }
+  });
+}
+
+// ═══════════════════════════════════════
+// Auto Comment Generation
+// ═══════════════════════════════════════
+function generateComment(records, profile) {
+  const annual = records.filter(r=>r.type==='annual').sort((a,b)=>a.academicYear-b.academicYear);
+  const monthly = records.filter(r=>r.type==='monthly').sort((a,b)=>a.date.localeCompare(b.date));
+  if (!annual.length) {
+    if (monthly.length) return `月次測定が${monthly.length}回記録されています。年次テスト（新体力テスト）のデータが入力されると詳細な評価が可能になります。`;
+    return 'データがまだ入力されていません。';
+  }
+  const latest = annual[annual.length-1];
+  const prev   = annual.length>=2 ? annual[annual.length-2] : null;
+  const parts  = [];
+  const itemList = [
+    {key:'grip',    label:'握力',          unit:'kg', lb:false, dec:1, min:0.5, hint:'上半身の筋力'},
+    {key:'situp',   label:'上体起こし',    unit:'回', lb:false, dec:0, min:1,   hint:'体幹・腹筋'},
+    {key:'bend',    label:'長座体前屈',    unit:'cm', lb:false, dec:1, min:1,   hint:'柔軟性'},
+    {key:'side',    label:'反復横とび',    unit:'点', lb:false, dec:0, min:1,   hint:'敏捷性'},
+    {key:'endurance',label:'シャトルラン', unit:'',   lb:false, dec:0, min:2,   hint:'持久力'},
+    {key:'sprint',  label:'50m走',         unit:'秒', lb:true,  dec:2, min:0.1, hint:'瞬発力・脚力'},
+    {key:'jump',    label:'立ち幅とび',    unit:'cm', lb:false, dec:0, min:3,   hint:'下半身の爆発力'},
+    {key:'ball',    label:'ボール投げ',    unit:'m',  lb:false, dec:1, min:0.5, hint:'上半身の瞬発力'},
+  ];
+  if (!prev) {
+    const yearNum = profile ? latest.academicYear - profile.entryYear + 1 : null;
+    const yn = yearNum&&yearNum>=1&&yearNum<=6 ? `（${yearNum}年目）` : '';
+    const has = itemList.filter(i=>latest[i.key]!==null&&latest[i.key]!==undefined);
+    parts.push(`${latest.academicYear}年度${yn}の年次テストを記録しました（${has.length}/8種目）。今後の測定で変化を追跡できます。`);
+  } else {
+    const improved=[], declined=[], same=[];
+    itemList.forEach(item=>{
+      const lv=latest[item.key], pv=prev[item.key];
+      if (lv==null||pv==null) return;
+      const diff=lv-pv, abs=Math.abs(diff);
+      if (abs<item.min) { same.push(item.label); return; }
+      const ok = item.lb ? diff<0 : diff>0;
+      const diffStr = item.lb
+        ? `${abs.toFixed(item.dec)}${item.unit}短縮`
+        : `+${abs.toFixed(item.dec)}${item.unit}`;
+      if (ok) improved.push(`${item.label}（${diffStr}）`);
+      else    declined.push({key:item.key, label:item.label, hint:item.hint, diffStr:`${abs.toFixed(item.dec)}${item.unit}低下`});
+    });
+    if (improved.length) parts.push(`【向上】${improved.join('、')}が前年比で改善`);
+    if (declined.length) parts.push(`【課題】${declined.map(d=>`${d.label}（${d.diffStr}）`).join('、')}`);
+    const score = improved.length - declined.length;
+    if      (score>=5) parts.push('総合的に体力が大幅に向上しており、非常に優れた結果です。この調子でトレーニングを続けてください。');
+    else if (score>=3) parts.push('全体的に向上傾向にあります。引き続き継続的な運動を心がけましょう。');
+    else if (score>=1) parts.push('一部の種目で向上が見られます。苦手な種目に重点的に取り組むとさらにバランスが向上します。');
+    else if (score===0) parts.push('全体的に前年と同水準を維持しています。各種目の維持・向上に継続して取り組みましょう。');
+    else               parts.push('複数の種目で低下が見られます。バランスのよい体力向上を目指し、日常的な運動習慣の見直しをお勧めします。');
+    const declinedKeys = declined.map(d=>d.key);
+    if (declinedKeys.some(k=>k==='bend'||k==='situp')) parts.push('柔軟性・体幹トレーニングを特に意識してください。');
+    if (declinedKeys.some(k=>k==='sprint'||k==='endurance')) parts.push('持久力・スピード系のトレーニングを強化しましょう。');
+    if (declinedKeys.some(k=>k==='jump'||k==='ball')) parts.push('下半身・上半身の筋力トレーニングを取り入れましょう。');
+  }
+  if (monthly.length>=3) {
+    parts.push(`月次測定は${monthly.length}回実施済みです。`);
+  }
+  return parts.join(' ');
+}
+
+// ═══════════════════════════════════════
+// Teacher Export
+// ═══════════════════════════════════════
+function csvRow(vals) {
+  return vals.map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(',');
+}
+
+function exportAllCSV() {
+  const td = tDB();
+  if (!td.students.length) { alert('データがありません。先に生徒データをインポートしてください。'); return; }
+  const BOM = '﻿';
+  const header = csvRow(['学年','クラス','出席番号','名前','性別','入学年度','測定日','年度','月','種別',
+    '握力(kg)','上体起こし(回)','長座体前屈(cm)','反復横とび(点)','持久走等','持久種別',
+    '50m走(秒)','立ち幅とび(cm)','ボール投げ(m)','メモ']);
+  const rows = [];
+  td.students.sort((a,b)=>a.profile.grade-b.profile.grade||a.profile.klass-b.profile.klass||a.profile.number-b.profile.number)
+    .forEach(s=>{
+      const p=s.profile;
+      [...s.records].sort((a,b)=>a.date.localeCompare(b.date)).forEach(r=>{
+        rows.push(csvRow([
+          `${p.grade}年生`, `${p.klass}組`, p.number, p.name, p.gender, p.entryYear,
+          r.date, r.academicYear, r.month, r.type==='annual'?'年次テスト':'月次測定',
+          r.grip??'', r.situp??'', r.bend??'', r.side??'',
+          r.endurance??'', r.etype==='shuttle'?'シャトルラン':'持久走',
+          r.sprint??'', r.jump??'', r.ball??'', r.memo??''
+        ]));
+      });
+    });
+  const csv = BOM + [header,...rows].join('\n');
+  dl(csv,'text/csv', `体力テスト_全記録_${today()}.csv`);
+}
+
+function exportSummaryCSV() {
+  const td = tDB();
+  if (!td.students.length) { alert('データがありません。'); return; }
+  const BOM = '﻿';
+  const header = csvRow(['学年','クラス','出席番号','名前','性別','入学年度',
+    '最新年次年度','握力(kg)','上体起こし(回)','長座体前屈(cm)','反復横とび(点)','持久走等','持久種別','50m走(秒)','立ち幅とび(cm)','ボール投げ(m)',
+    '記録総数','年次テスト数','月次測定数','自動評価コメント']);
+  const rows = [];
+  td.students.sort((a,b)=>a.profile.grade-b.profile.grade||a.profile.klass-b.profile.klass||a.profile.number-b.profile.number)
+    .forEach(s=>{
+      const p=s.profile;
+      const annual=[...s.records].filter(r=>r.type==='annual').sort((a,b)=>b.date.localeCompare(a.date));
+      const latest=annual[0];
+      const comment=generateComment(s.records, p);
+      rows.push(csvRow([
+        `${p.grade}年生`, `${p.klass}組`, p.number, p.name, p.gender, p.entryYear,
+        latest?.academicYear??'',
+        latest?.grip??'', latest?.situp??'', latest?.bend??'', latest?.side??'',
+        latest?.endurance??'', latest ? (latest.etype==='shuttle'?'シャトルラン':'持久走') : '',
+        latest?.sprint??'', latest?.jump??'', latest?.ball??'',
+        s.records.length,
+        s.records.filter(r=>r.type==='annual').length,
+        s.records.filter(r=>r.type==='monthly').length,
+        comment
+      ]));
+    });
+  const csv = BOM + [header,...rows].join('\n');
+  dl(csv,'text/csv', `体力テスト_サマリー_${today()}.csv`);
+}
+
+function dl(content, type, filename) {
+  const blob = new Blob([content],{type:`${type};charset=utf-8`});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function today() { return new Date().toISOString().slice(0,10); }
+
+// ═══════════════════════════════════════
+// Init
+// ═══════════════════════════════════════
+init();
+
+// ═══════════════════════════════════════
+// PWA — Service Worker 登録
+// ═══════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .catch(err => console.warn('SW registration failed:', err));
+  });
+}
+
+// ═══════════════════════════════════════
+// PWA — インストールプロンプト
+// ═══════════════════════════════════════
+let deferredPrompt = null;
+const installBanner = document.getElementById('install-banner');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBanner.classList.add('show');
+});
+
+document.getElementById('ib-install-btn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBanner.classList.remove('show');
+});
+
+document.getElementById('ib-close-btn').addEventListener('click', () => {
+  installBanner.classList.remove('show');
+});
+
+window.addEventListener('appinstalled', () => {
+  installBanner.classList.remove('show');
+  deferredPrompt = null;
+});
+
+// ═══════════════════════════════════════
+// PWA — オフライン検知
+// ═══════════════════════════════════════
+const offlineBanner = document.getElementById('offline-banner');
+function updateOnlineStatus() {
+  offlineBanner.classList.toggle('show', !navigator.onLine);
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+// ═══════════════════════════════════════
+// 底部ナビ — 上部タブと同期
+// ═══════════════════════════════════════
+document.querySelectorAll('.bnav-item[data-sp]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    goS(btn.dataset.sp);
+    document.querySelectorAll('.bnav-item[data-sp]').forEach(b =>
+      b.classList.toggle('active', b.dataset.sp === btn.dataset.sp));
+  });
+});
+
+// goS 呼び出し時に底部ナビも同期
+const _origGoS = goS;
+goS = function(page) {
+  _origGoS(page);
+  document.querySelectorAll('.bnav-item[data-sp]').forEach(b =>
+    b.classList.toggle('active', b.dataset.sp === page));
+};
+
+// 教員モード切替時に底部ナビを隠す / 戻す
+const bnav = document.getElementById('student-bnav');
+const _origEnter = enterTeacherMode;
+enterTeacherMode = function() {
+  bnav.style.display = 'none';
+  _origEnter();
+};
+const _origExit = exitTeacherMode;
+exitTeacherMode = function() {
+  bnav.style.display = '';
+  _origExit();
+};
+</script>
+</body>
+</html>
