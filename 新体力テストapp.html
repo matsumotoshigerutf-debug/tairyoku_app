@@ -521,7 +521,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
             <div class="card-title">生徒データのインポート</div>
           </div>
           <p class="ts tm" style="margin-bottom:1rem;line-height:1.6">生徒が提出したJSONファイルを選択してください。複数ファイルを一度にインポートできます。</p>
-          <input type="file" class="fc" id="t-import-file" accept=".json" multiple onchange="importStudentFiles(this)" style="margin-bottom:.75rem">
+          <input type="file" class="fc" id="t-import-file" accept=".json,.txt" multiple onchange="importStudentFiles(this)" style="margin-bottom:.75rem">
           <div id="t-import-msg" class="alert a-ok" style="display:none"></div>
         </div>
         <div class="card">
@@ -992,11 +992,11 @@ function exportMyData() {
   const d = sDB();
   const p = d.profile;
   if (!p) { alert('プロフィールが設定されていません'); return; }
-  const blob = new Blob([JSON.stringify(d, null, 2)], { type:'application/json' });
+  const blob = new Blob([JSON.stringify(d, null, 2)], { type:'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${p.grade}年${p.klass}組_${String(p.number).padStart(2,'0')}_${p.name}_体力テスト.json`;
+  a.download = `${p.grade}年${p.klass}組_${String(p.number).padStart(2,'0')}_${p.name}_体力テスト.txt`;
   a.click();
   URL.revokeObjectURL(url);
 }
