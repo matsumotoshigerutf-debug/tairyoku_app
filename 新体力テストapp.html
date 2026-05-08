@@ -521,11 +521,16 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       <div class="g2">
         <div class="card">
           <div class="card-hd">
-            <div class="card-title">生徒データのインポート</div>
+            <div class="card-title">📋 Microsoftフォーム回答をインポート</div>
           </div>
-          <p class="ts tm" style="margin-bottom:1rem;line-height:1.6">生徒が提出したJSONファイルを選択してください。複数ファイルを一度にインポートできます。</p>
-          <input type="file" class="fc" id="t-import-file" accept=".json,.txt" multiple onchange="importStudentFiles(this)" style="margin-bottom:.75rem">
-          <div id="t-import-msg" class="alert a-ok" style="display:none"></div>
+          <p class="ts tm" style="margin-bottom:.6rem;line-height:1.6">Microsoftフォームの回答をExcelでダウンロードし、<strong>CSV形式で保存</strong>してからアップロードしてください。全生徒分を一括処理します。</p>
+          <div style="background:#eff6ff;border-radius:8px;padding:.6rem .8rem;margin-bottom:.75rem;font-size:.78rem;color:#1e40af;line-height:1.7">
+            ① Microsoftフォーム → 「回答」→「Excelで開く」<br>
+            ② Excel → 「ファイル」→「名前を付けて保存」→「CSV UTF-8」<br>
+            ③ 保存したCSVファイルを下で選択
+          </div>
+          <input type="file" class="fc" id="t-forms-file" accept=".csv" onchange="importFormsCSV(this)" style="margin-bottom:.75rem">
+          <div id="t-forms-msg" class="alert a-ok" style="display:none"></div>
         </div>
         <div class="card">
           <div class="card-title" style="margin-bottom:1rem">クイックアクション</div>
@@ -1129,6 +1134,76 @@ document.querySelectorAll('[data-tp]').forEach(t => t.addEventListener('click', 
 // ═══════════════════════════════════════
 // Teacher Import
 // ═══════════════════════════════════════
+function mergeStudent(td, data) {
+  const key = `${data.profile.grade}_${data.profile.klass}_${data.profile.number}`;
+  const idx = td.students.findIndex(s => `${s.profile.grade}_${s.profile.klass}_${s.profile.number}` === key);
+  if (idx >= 0) {
+    td.students[idx].profile = data.profile;
+    const existKeys = new Set(td.students[idx].records.map(r => `${r.date}_${r.type}`));
+    const newRecs = data.records.filter(r => !existKeys.has(`${r.date}_${r.type}`));
+    td.students[idx].records.push(...newRecs);
+    return 'updated';
+  } else {
+    td.students.push({ profile: data.profile, records: data.records });
+    return 'imported';
+  }
+}
+
+function parseCSVRows(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const rows = [];
+  let row = [], cell = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"' && text[i+1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') inQ = false;
+      else cell += ch;
+    } else {
+      if (ch === '"') inQ = true;
+      else if (ch === ',') { row.push(cell); cell = ''; }
+      else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else if (ch !== '\r') cell += ch;
+    }
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  return rows;
+}
+
+function importFormsCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const rows = parseCSVRows(e.target.result);
+    let imported = 0, updated = 0, errors = 0;
+    const td = tDB();
+    rows.forEach((row, i) => {
+      if (i === 0) return;
+      for (const cell of row) {
+        if (cell.includes('"profile"') && cell.includes('"records"')) {
+          try {
+            const data = JSON.parse(cell);
+            if (!data.profile || !Array.isArray(data.records)) continue;
+            const result = mergeStudent(td, data);
+            if (result === 'imported') imported++;
+            else updated++;
+            break;
+          } catch { errors++; }
+        }
+      }
+    });
+    saveTDB(td);
+    const msg = document.getElementById('t-forms-msg');
+    msg.style.display = 'block';
+    msg.textContent = `✅ 完了: 新規${imported}名, 更新${updated}名${errors ? `  ⚠️ エラー${errors}件` : ''}`;
+    setTimeout(() => msg.style.display = 'none', 5000);
+    renderTeacherDash();
+    input.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
 function importStudentFiles(input) {
   const files = Array.from(input.files);
   if (!files.length) return;
