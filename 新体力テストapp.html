@@ -472,9 +472,12 @@ body{padding-bottom:env(safe-area-inset-bottom)}
           </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:.6rem">
-          <button class="btn btn-t btn-lg" onclick="exportMyData()">① JSONをダウンロード（提出用ファイル）</button>
-          <a class="btn btn-p btn-lg" href="https://forms.office.com/r/7AEfmsT0WN" target="_blank" rel="noopener" style="text-decoration:none;justify-content:center">② フォームで提出する →</a>
+          <button class="btn btn-t btn-lg" onclick="copyMyData()" id="copy-btn">① データをコピーする</button>
+          <a class="btn btn-p btn-lg" href="https://forms.office.com/r/7AEfmsT0WN" target="_blank" rel="noopener" style="text-decoration:none;justify-content:center">② フォームを開いて貼り付け・送信 →</a>
           <button class="btn btn-g" onclick="exportMyCsv()" style="font-size:.82rem">自分の記録をExcelで確認（CSV）</button>
+        </div>
+        <div id="copy-msg" style="display:none;margin-top:.75rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.75rem;font-size:.85rem;color:#065f46;line-height:1.7">
+          ✅ コピーしました！<br>「② フォームを開いて貼り付け・送信」をタップし、入力欄を長押しして「貼り付け」してください。
         </div>
       </div>
       <div class="card">
@@ -999,6 +1002,25 @@ function exportMyData() {
   a.download = `${p.grade}年${p.klass}組_${String(p.number).padStart(2,'0')}_${p.name}_体力テスト.txt`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function copyMyData() {
+  const d = sDB();
+  if (!d.profile) { alert('プロフィールが設定されていません'); return; }
+  if (!d.records.length) { alert('記録がありません'); return; }
+  const text = JSON.stringify(d);
+  navigator.clipboard.writeText(text).then(() => {
+    const msg = document.getElementById('copy-msg');
+    msg.style.display = 'block';
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✅ コピー済み';
+    setTimeout(() => {
+      msg.style.display = 'none';
+      btn.textContent = '① データをコピーする';
+    }, 8000);
+  }).catch(() => {
+    alert('コピーに失敗しました。お使いのブラウザでは対応していない場合があります。');
+  });
 }
 
 function exportMyCsv() {
