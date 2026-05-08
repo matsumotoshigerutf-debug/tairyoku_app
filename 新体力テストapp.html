@@ -373,8 +373,8 @@ body{padding-bottom:env(safe-area-inset-bottom)}
           <div class="fg">
             <label class="fl">⑤ 持久走 / シャトルラン</label>
             <div class="erow">
-              <input type="number" class="fc" id="r-endurance" placeholder="数値" step="1" min="0" max="300">
-              <select class="fc" id="r-etype"><option value="shuttle">シャトルラン(回)</option><option value="run">持久走(秒)</option></select>
+              <input type="text" class="fc" id="r-endurance" placeholder="例: 5.30">
+              <select class="fc" id="r-etype"><option value="shuttle">シャトルラン(回)</option><option value="run">持久走(分.秒)</option></select>
             </div>
           </div>
           <div class="fg"><label class="fl">⑥ 50m走<span class="note">(秒)</span></label><input type="number" class="fc" id="r-sprint" placeholder="例: 8.50" step="0.01" min="5" max="20"></div>
@@ -463,8 +463,15 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       </div>
       <div class="card">
         <div class="card-title" style="margin-bottom:.6rem">📤 データを先生に提出</div>
+        <div id="submit-dest-box" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem">
+          <div style="font-size:.78rem;font-weight:700;color:#065f46;margin-bottom:.25rem">📬 提出先</div>
+          <div id="submit-dest-text" style="font-size:.9rem;color:#064e3b;word-break:break-all"></div>
+        </div>
         <p class="ts tm" style="margin-bottom:1rem;line-height:1.6">JSONファイルをダウンロードして先生に提出してください。先生が教員モードでインポートし、全体集計を行います。</p>
-        <button class="btn btn-t" onclick="exportMyData()">📄 データをダウンロード（先生に提出）</button>
+        <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+          <button class="btn btn-t" onclick="exportMyData()">📄 JSONをダウンロード（提出用）</button>
+          <button class="btn btn-g" onclick="exportMyCsv()">📊 Excelで確認（CSV）</button>
+        </div>
       </div>
       <div class="card">
         <div class="card-title" style="margin-bottom:.6rem">🔒 教員モード</div>
@@ -635,6 +642,18 @@ body{padding-bottom:env(safe-area-inset-bottom)}
         </div>
       </div>
       <div class="card">
+        <div class="card-title" style="margin-bottom:.6rem">📬 生徒への提出先案内</div>
+        <p class="ts tm" style="margin-bottom:.75rem;line-height:1.6">生徒の「設定」画面に提出先として表示されます。メールアドレス・URLなど自由に入力してください。</p>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
+          <div class="fg" style="margin-bottom:0;flex:1;min-width:200px">
+            <label class="fl">提出先（メール・URL・場所など）</label>
+            <input type="text" class="fc" id="t-submit-dest" placeholder="例: taro@school.ac.jp　または　https://forms.office.com/...">
+          </div>
+          <button class="btn btn-t" onclick="saveSubmitDest()">保存する</button>
+        </div>
+        <div id="t-submit-dest-msg" class="alert a-ok" style="display:none;margin-top:.6rem">✅ 保存しました</div>
+      </div>
+      <div class="card">
         <div class="card-title" style="margin-bottom:.6rem">🔒 教員パスワードの変更</div>
         <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
           <div class="fg" style="margin-bottom:0;flex:1;min-width:200px">
@@ -643,7 +662,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
           </div>
           <button class="btn btn-g" onclick="changeTeacherPwd()">変更する</button>
         </div>
-        <p class="ts tm mt-s">初期パスワード: <strong>teacher123</strong></p>
+        <p class="ts tm mt-s">初期パスワード: <strong>4272</strong></p>
       </div>
     </section>
 
@@ -708,7 +727,7 @@ body{padding-bottom:env(safe-area-inset-bottom)}
 const SK = 'tairyoku_student_v2';
 const TK = 'tairyoku_teacher_v2';
 const PK = 'tairyoku_pwd';
-const DEFAULT_PWD = 'teacher123';
+const DEFAULT_PWD = '4272';
 
 const ITEMS = {
   grip:      { label:'握力',          unit:'kg', lb:false, dec:1 },
@@ -741,9 +760,32 @@ function saveTDB(d) { localStorage.setItem(TK, JSON.stringify(d)); }
 
 function getPwd() { return localStorage.getItem(PK) || DEFAULT_PWD; }
 function setPwd(p) { localStorage.setItem(PK, p); }
+function getSubmitDest() { return localStorage.getItem('tairyoku_submit') || ''; }
+function setSubmitDest(v) { localStorage.setItem('tairyoku_submit', v); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
 function n(v) { const x = parseFloat(v); return isNaN(x) ? null : x; }
 function fmt(v, dec=1) { return (v === null || v === undefined) ? '—' : typeof dec === 'number' ? v : v; }
+
+function parseRunTime(val) {
+  if (!val || val.toString().trim() === '') return null;
+  const s = val.toString().trim();
+  const mSec = s.match(/^(\d+)分(\d+)秒?$/);
+  if (mSec) return parseInt(mSec[1]) * 60 + parseInt(mSec[2]);
+  const colon = s.match(/^(\d+):(\d{1,2})$/);
+  if (colon) return parseInt(colon[1]) * 60 + parseInt(colon[2]);
+  const dot = s.match(/^(\d+)\.(\d{1,2})$/);
+  if (dot) return parseInt(dot[1]) * 60 + parseInt(dot[2]);
+  const num = parseFloat(s);
+  if (!isNaN(num)) return Math.round(num);
+  return null;
+}
+
+function fmtRunTime(secs) {
+  if (secs == null) return '—';
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
 
 // ═══════════════════════════════════════
 // Init & Screen
@@ -797,7 +839,7 @@ function goS(page) {
   document.querySelector(`[data-sp="${page}"]`).classList.add('active');
   if (page === 'home')     renderStudentHome();
   if (page === 'graph')    renderStudentGraphs();
-  if (page === 'settings') loadSettingsForm();
+  if (page === 'settings') { loadSettingsForm(); renderSubmitDest(); }
 }
 document.querySelectorAll('[data-sp]').forEach(t => t.addEventListener('click', () => goS(t.dataset.sp)));
 
@@ -844,8 +886,10 @@ function saveRecord() {
     situp:    n(document.getElementById('r-situp').value),
     bend:     n(document.getElementById('r-bend').value),
     side:     n(document.getElementById('r-side').value),
-    endurance:n(document.getElementById('r-endurance').value),
     etype:    document.getElementById('r-etype').value,
+    endurance: document.getElementById('r-etype').value === 'run'
+      ? parseRunTime(document.getElementById('r-endurance').value)
+      : n(document.getElementById('r-endurance').value),
     sprint:   n(document.getElementById('r-sprint').value),
     jump:     n(document.getElementById('r-jump').value),
     ball:     n(document.getElementById('r-ball').value),
@@ -874,7 +918,7 @@ function showRecordHistory() {
     <td>${r.date}</td>
     <td><span class="badge ${r.type==='annual'?'b-blue':'b-green'}">${r.type==='annual'?'年次':'月次'}</span></td>
     <td>${r.grip??'—'}</td><td>${r.situp??'—'}</td><td>${r.bend??'—'}</td><td>${r.side??'—'}</td>
-    <td>${r.endurance??'—'}<span class="ts tm"> ${r.etype==='shuttle'?'SR':'持久'}</span></td>
+    <td>${r.etype==='run' ? fmtRunTime(r.endurance) : (r.endurance??'—')}<span class="ts tm"> ${r.etype==='shuttle'?'SR':'持久'}</span></td>
     <td>${r.sprint??'—'}</td><td>${r.jump??'—'}</td><td>${r.ball??'—'}</td>
     <td><button class="btn btn-r btn-sm" onclick="deleteMyRecord('${r.id}')">削除</button></td>
   </tr>`).join('');
@@ -953,6 +997,44 @@ function exportMyData() {
   URL.revokeObjectURL(url);
 }
 
+function exportMyCsv() {
+  const d = sDB();
+  const p = d.profile;
+  if (!p) { alert('プロフィールが設定されていません'); return; }
+  if (!d.records.length) { alert('記録がありません'); return; }
+  const BOM = '﻿';
+  const header = csvRow(['測定日','種別','握力(kg)','上体起こし(回)','長座体前屈(cm)','反復横とび(点)','持久走等','持久種別','50m走(秒)','立ち幅とび(cm)','ボール投げ(m)','メモ']);
+  const rows = [...d.records].sort((a,b)=>a.date.localeCompare(b.date)).map(r=>csvRow([
+    r.date, r.type==='annual'?'年次テスト':'月次測定',
+    r.grip??'', r.situp??'', r.bend??'', r.side??'',
+    r.etype==='run' ? fmtRunTime(r.endurance) : (r.endurance??''),
+    r.etype==='shuttle'?'シャトルラン':'持久走',
+    r.sprint??'', r.jump??'', r.ball??'', r.memo??''
+  ]));
+  const csv = BOM + [header,...rows].join('\n');
+  dl(csv, 'text/csv', `${p.grade}年${p.klass}組_${String(p.number).padStart(2,'0')}_${p.name}_体力テスト.csv`);
+}
+
+function saveSubmitDest() {
+  const v = document.getElementById('t-submit-dest').value.trim();
+  setSubmitDest(v);
+  const msg = document.getElementById('t-submit-dest-msg');
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display = 'none', 2000);
+}
+
+function renderSubmitDest() {
+  const dest = getSubmitDest();
+  const box = document.getElementById('submit-dest-box');
+  const txt = document.getElementById('submit-dest-text');
+  if (dest) {
+    txt.textContent = dest;
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
 function resetMyData() {
   if (!confirm('すべての記録とプロフィールを削除します。\nまずデータをダウンロードしましたか？')) return;
   if (!confirm('本当に削除しますか？（最終確認）')) return;
@@ -1011,6 +1093,10 @@ function goT(page) {
   if (page==='dash')     renderTeacherDash();
   if (page==='students') renderTeacherStudents();
   if (page==='graph')    renderTeacherSelectList();
+  if (page==='export') {
+    const el = document.getElementById('t-submit-dest');
+    if (el) el.value = getSubmitDest();
+  }
 }
 document.querySelectorAll('[data-tp]').forEach(t => t.addEventListener('click', () => goT(t.dataset.tp)));
 
@@ -1386,7 +1472,7 @@ function exportAllCSV() {
           `${p.grade}年生`, `${p.klass}組`, p.number, p.name, p.gender, p.entryYear,
           r.date, r.academicYear, r.month, r.type==='annual'?'年次テスト':'月次測定',
           r.grip??'', r.situp??'', r.bend??'', r.side??'',
-          r.endurance??'', r.etype==='shuttle'?'シャトルラン':'持久走',
+          r.etype==='run' ? fmtRunTime(r.endurance) : (r.endurance??''), r.etype==='shuttle'?'シャトルラン':'持久走',
           r.sprint??'', r.jump??'', r.ball??'', r.memo??''
         ]));
       });
@@ -1413,7 +1499,8 @@ function exportSummaryCSV() {
         `${p.grade}年生`, `${p.klass}組`, p.number, p.name, p.gender, p.entryYear,
         latest?.academicYear??'',
         latest?.grip??'', latest?.situp??'', latest?.bend??'', latest?.side??'',
-        latest?.endurance??'', latest ? (latest.etype==='shuttle'?'シャトルラン':'持久走') : '',
+        latest ? (latest.etype==='run' ? fmtRunTime(latest.endurance) : (latest.endurance??'')) : '',
+        latest ? (latest.etype==='shuttle'?'シャトルラン':'持久走') : '',
         latest?.sprint??'', latest?.jump??'', latest?.ball??'',
         s.records.length,
         s.records.filter(r=>r.type==='annual').length,
