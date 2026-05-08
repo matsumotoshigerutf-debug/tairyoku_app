@@ -463,14 +463,18 @@ body{padding-bottom:env(safe-area-inset-bottom)}
       </div>
       <div class="card">
         <div class="card-title" style="margin-bottom:.6rem">📤 データを先生に提出</div>
-        <div id="submit-dest-box" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.75rem 1rem;margin-bottom:1rem">
-          <div style="font-size:.78rem;font-weight:700;color:#065f46;margin-bottom:.25rem">📬 提出先</div>
-          <div id="submit-dest-text" style="font-size:.9rem;color:#064e3b;word-break:break-all"></div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:1rem;margin-bottom:1rem;line-height:1.8">
+          <div style="font-size:.82rem;font-weight:700;color:#1e40af;margin-bottom:.5rem">📋 提出の手順</div>
+          <div style="font-size:.85rem;color:#1e3a8a">
+            <div>① 下の「JSONをダウンロード」をタップ</div>
+            <div>② ダウンロードしたファイルを確認する</div>
+            <div>③「フォームで提出する」をタップして開いたフォームにファイルを添付して送信</div>
+          </div>
         </div>
-        <p class="ts tm" style="margin-bottom:1rem;line-height:1.6">JSONファイルをダウンロードして先生に提出してください。先生が教員モードでインポートし、全体集計を行います。</p>
-        <div style="display:flex;gap:.6rem;flex-wrap:wrap">
-          <button class="btn btn-t" onclick="exportMyData()">📄 JSONをダウンロード（提出用）</button>
-          <button class="btn btn-g" onclick="exportMyCsv()">📊 Excelで確認（CSV）</button>
+        <div style="display:flex;flex-direction:column;gap:.6rem">
+          <button class="btn btn-t btn-lg" onclick="exportMyData()">① JSONをダウンロード（提出用ファイル）</button>
+          <a class="btn btn-p btn-lg" href="https://forms.office.com/r/7AEfmsT0WN" target="_blank" rel="noopener" style="text-decoration:none;justify-content:center">② フォームで提出する →</a>
+          <button class="btn btn-g" onclick="exportMyCsv()" style="font-size:.82rem">自分の記録をExcelで確認（CSV）</button>
         </div>
       </div>
       <div class="card">
